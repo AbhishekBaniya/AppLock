@@ -1,0 +1,128 @@
+package com.example.lasttry.adapter;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.lasttry.R;
+import com.example.lasttry.helper.Helper;
+import com.example.lasttry.model.InstalledAppList;
+import com.example.lasttry.utils.SettingsKeys;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ListDataViewHolder> {
+    public List<InstalledAppList> mData;
+    public Context ctx;
+    private Helper mHelper;
+    private Set<String> mSet = null;
+    private Set<String> nSet = new HashSet<String>();
+    protected int size;
+    protected SharedPreferences sp;
+
+    public AppListAdapter(Context c) {
+        mData = new ArrayList<>();
+        this.ctx = c;
+        mHelper = new Helper(ctx);
+        notifyDataSetChanged();
+    }
+
+    public void setData(List<InstalledAppList> data) {
+        mData = data;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public ListDataViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.app_list_layout, parent, false);
+        return new ListDataViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(ListDataViewHolder holder, int position) {
+        InstalledAppList item = mData.get(position);
+        sp = ctx.getSharedPreferences("Total_Locked", Context.MODE_PRIVATE);
+        SharedPreferences.Editor e = sp.edit();
+        mSet = new HashSet<String>();
+        mSet = mHelper.getHashSet(SettingsKeys.LOCKED_APPS);
+        nSet = mHelper.getHashSet(SettingsKeys.LOCKED_APPS);
+        holder.app_icon.setImageDrawable(item.getAppIcon());
+        holder.app_name.setText(item.getName());
+        holder.app_package.setText(item.getPackages());
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (holder.cb.isChecked()){
+                    //Toast.makeText(ctx, "Unlock "+item.getPackages(), Toast.LENGTH_SHORT).show();
+                    holder.cb.setChecked(false);
+                    mHelper.removeFromHashSet(mSet,item.getPackages(),SettingsKeys.LOCKED_APPS);
+                    holder.img_lock_status.setImageResource(R.drawable.ic_baseline_lock_open_24);
+                    notifyItemChanged(position);
+                }else{
+                    //Toast.makeText(ctx, "lock "+item.getPackages(), Toast.LENGTH_SHORT).show();
+                    holder.cb.setChecked(true);
+                    mHelper.addToHashSet(mSet,item.getPackages(),SettingsKeys.LOCKED_APPS);
+                    holder.img_lock_status.setImageResource(R.drawable.ic_baseline_lock_24);
+                    notifyItemChanged(position);
+                }
+            }
+        });
+
+        if (nSet.contains(item.getPackages())){
+            holder.img_lock_status.setImageResource(R.drawable.ic_baseline_lock_24);
+            size = nSet.size();
+            e.putInt("count", size);
+            e.apply();
+            //Toast.makeText(ctx, ""+size, Toast.LENGTH_SHORT).show();
+        } else {
+            holder.img_lock_status.setImageResource(R.drawable.ic_baseline_lock_open_24);
+            size = nSet.size();
+            e.putInt("count", size);
+            e.apply();
+            //Toast.makeText(ctx, ""+size, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(ctx, ""+getItemId(position), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public int getItemCount() {
+        return mData.size();
+    }
+
+
+    class ListDataViewHolder extends RecyclerView.ViewHolder {
+
+        protected ImageView app_icon, img_lock_status;
+        protected TextView app_name, app_package;
+        protected CheckBox cb;
+
+        ListDataViewHolder(View v) {
+            super(v);
+            app_icon = v.findViewById(R.id.app_icon);
+            img_lock_status = v.findViewById(R.id.img_lock_status);
+            app_name = v.findViewById(R.id.app_name);
+            app_package = v.findViewById(R.id.app_package);
+            cb = v.findViewById(R.id.cb);
+        }
+    }
+
+    private void deleteItem(int position) {
+        mData.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, mData.size());
+    }
+
+
+}
